@@ -27,7 +27,8 @@ through levels ignoring currIndex.
             - if there is still a problem, return 0
     - return 1
 - DOES NOT WORK
-- Example: [8, 9, 7, 6, 5] -> would remove 8 even if bad level is 7 or 9
+- badLevelIndex = 3, counter = 2, poppedIndex = badLevelIndex - counter
+- Example: [7, 8, 10, 9, 7, 6, 5] -> would remove 8 even if bad level is 7 or 9
 - How do we know which level to remove???
 - Whatever, lets just test every possible letter
 Final Approach -> Probably Naive because i cant think of anything else for now:
@@ -70,12 +71,13 @@ def checkIfSafe(levels):
         while(counter >= 0):
             badLevelFound = False
             ignoreIndex = badLevelIndex - counter
-            ignoredLevel = None
             if ignoreIndex >= 0:
-                ignoredLevel = levels.pop(ignoreIndex)
+                # ignoredLevel = levels.pop(ignoreIndex)
                 prevLevel = None
                 prevStatus = None
                 for i, level in enumerate(levels):
+                    if i == ignoreIndex:
+                        continue
                     level = int(level)
                     if not prevLevel:
                         prevLevel = level
@@ -89,9 +91,8 @@ def checkIfSafe(levels):
                             prevStatus = currStatus
                         prevLevel = level
                 if not badLevelFound:
-                    print(levels, badLevelFound)
                     return 1
-                levels.insert(ignoreIndex, ignoredLevel)
+                # levels.insert(ignoreIndex, ignoredLevel)
             counter -= 1
         return 0
     else:
