@@ -38,6 +38,16 @@ Approach:
     - also need to keep track of current direction to get distances for each node
         - save this in distances map so that you could access the direction that 
         that node was accessed from to determine points
+Corner Cases?:
+- Answer works on given input but not actual
+- dikstras should work if the graph edges never change value, and there are no negative cycles
+- my guess it that since i am treating the spots as nodes and their connection to to other spots
+as edges, its clear that a specific edge can and will change values depending on which direction you
+entered in on. 
+    - just an idea, but i feel like the changing edge values are not captured well in dikstras
+    - so intead, what if we create 4 nodes for each spot on the maze. 
+        - one node representing entering the spot from each possible direction. This way, the edge values 
+        no longer change.
 """
 
 #Define sets
@@ -58,28 +68,6 @@ cols = len(maze[0])
 end = (None, None)
 start = (None, None)
 
-for r in range(rows):
-    for c in range(cols):
-        node = maze[r][c]
-        if node == "#":
-            continue
-        elif node == "S":
-            start = (r, c)
-            maze[r][c] = "."
-        elif node == "E":
-            end = (r, c)
-            maze[r][c] = "."
-           
-        unvisited.add((r, c))
-
-for node in unvisited:
-    distances[node] = [float('inf'), None] #Second index is direction
-
-distances[start][0] = 0
-distances[start][1]  = "E"
-
-currDir = "E"
-
 directions = {
     (0, 1): "E",
     (-1, 0): "N",
@@ -92,27 +80,70 @@ dir90s = {
     "W": {"N", "S"},
     "S": {"E", "W"},
     "N": {"E", "W"}
-
 }
 
+dirOps = {
+    "E": "W",
+    "N": "S",
+    "W": "E",
+    "S": "N",
+}
+
+
+for r in range(rows):
+    for c in range(cols):
+        node = maze[r][c]
+        if node == "#":
+            continue
+        elif node == "S":
+            start = (r, c)
+            maze[r][c] = "."
+            unvisited.add(((r, c), "E"))
+        elif node == "E":
+            end = (r, c)
+            maze[r][c] = "."
+        
+        for dir, sym in directions.items():
+            newR = r + dir[0]
+            newC = c + dir[1]
+            if (r, c) == (1, 15):
+                print("dirOPS", sym, maze[newR][newC])
+
+            if newR in range(rows) and newC in range(cols) and (maze[newR][newC] == "." or maze[newR][newC] == "E" or maze[newR][newC] == "S"):
+                unvisited.add(((r, c), dirOps[sym]))
+
+for node in unvisited:
+    if node[0] == (1, 15):
+        print(node)
+    distances[node] = float('inf') #Second index is direction
+
+# print(distances)
+
+distances[(start, "E")] = 0
+
+print(end)
 #Now do dikstras
 while unvisited:
+    print(len(unvisited))
     #Find minimum distance node
     minNode = (None, None)
     minDistance = float('inf')
     for node in unvisited:
-        if distances[node][0] <= minDistance:
+        if distances[node] < minDistance:
             minNode = node
-            minDistance = distances[node][0]
+            minDistance = distances[node]
+
+    if minNode == (None, None):
+        break
     
     # visited.add(minNode)
     unvisited.remove(minNode)
 
-    incomingDir = distances[minNode][1]
-    incomingDist = distances[minNode][0]
+    incomingDir = minNode[1]
+    incomingDist = distances[minNode]
 
-    currR = minNode[0]
-    currC = minNode[1]
+    currR = minNode[0][0]
+    currC = minNode[0][1]
 
     #Update distances of nodes adjacent to minNode and keep track of direction
     for direction, symbol in directions.items():
@@ -124,6 +155,8 @@ while unvisited:
 
         newDist = None
 
+        
+
         if symbol in dir90s[incomingDir]:
             newDist = incomingDist + 1001
         elif symbol == incomingDir:
@@ -131,29 +164,46 @@ while unvisited:
         else:
             continue
 
-        if newDist < distances[(newR, newC)][0]:
-            distances[(newR, newC)] = [newDist, symbol]
+        # if minNode[0] == (15, 1):
+        # print(minNode[0], incomingDir, incomingDist, newDist, symbol)
 
-print(distances[end])
+        if newDist <= distances[((newR, newC), symbol)]:
+            distances[((newR, newC), symbol)] = newDist
+            # #Test adding these back in as edge values can technically change depending on path
+            # unvisited.add((newR, newC))
+            # # unvisited.add((currR, currC))
+
+print(distances[(end, "E")])
 
 currNode = end
 
-while currNode != start:
-    r = currNode[0]
-    c = currNode[1]
+# for r in range(rows):
+#     for c in range(cols):
+#         currNode = (r, c)
+#         if currNode == end:
+#             print("FOUND END", end)
+#         while currNode in distances and currNode != start:
+#             # if distances[currNode][1] is None:
+#             #     continue
+#             r = currNode[0]
+#             c = currNode[1]
 
-    maze[r][c] = "O"
+#             maze[r][c] = "@" #distances[currNode][1]#str(round(distances[currNode][0] / 7036, 1))
 
-    incomingDir = distances[currNode][1]
+#             incomingDir = distances[currNode][1]
 
-    if incomingDir == "N":
-        currNode = (currNode[0] + 1, currNode[1])
-    elif incomingDir == "S":
-        currNode = (currNode[0] - 1, currNode[1])
-    elif incomingDir == "E":
-        currNode = (currNode[0], currNode[1] - 1)
-    else:
-        currNode = (currNode[0], currNode[1] + 1)
+#             if incomingDir == "N":
+#                 currNode = (currNode[0] + 1, currNode[1])
+#             elif incomingDir == "S":
+#                 currNode = (currNode[0] - 1, currNode[1])
+#             elif incomingDir == "E":
+#                 currNode = (currNode[0], currNode[1] - 1)
+#             else:
+#                 currNode = (currNode[0], currNode[1] + 1)
+
+# for r, c in distances.keys():
+#     if distances[(r, c)][0] < 50000:
+#         maze[r][c] = "@"
 
 for line in maze:
     print("".join(line))
