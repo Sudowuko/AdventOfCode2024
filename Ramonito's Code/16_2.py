@@ -19,12 +19,16 @@ Update:
     - starting at the east-wise node going into end, we just use a stack to count its prev nodes up until start
     - use a set so that you do not have duplicates and remove prev from prev list once pushed onto stack so that 
     you do not go in an infinite loop
+- I think we can just handle it node by node
+    - in this case we would just store the prev of a node to be when it is the smallest or equal to the smallest distance
+Many Corner Cases:
+- Could not just store previous for a given node since you that would not be my original dikstras algoirhtm
+- was updating distance before checking prev, so prevs were not updating correctly
 """
 
 from collections import deque
 
 #Define sets
-visited = set()
 unvisited = set()
 distances = {}
 prevs = {}
@@ -76,27 +80,21 @@ for r in range(rows):
         elif node == "E":
             end = (r, c)
             maze[r][c] = "."
-
-        prevs[(r, c)] = [[], float('inf')]
         
         for dir, sym in directions.items():
             newR = r + dir[0]
             newC = c + dir[1]
-
-            if newR in range(rows) and newC in range(cols) and (maze[newR][newC] == "." or maze[newR][newC] == "E" or maze[newR][newC] == "S"):
+            if newR in range(rows) and newC in range(cols) and maze[newR][newC] != "#":
                 unvisited.add(((r, c), dirOps[sym]))
 
 for node in unvisited:
     distances[node] = float('inf') #Second index is direction
-
-# print(distances)
+    prevs[node] = []
 
 distances[(start, "E")] = 0
 
-# print(end)
 #Now do dikstras
 while unvisited:
-    # print(len(unvisited))
     #Find minimum distance node
     minNode = (None, None)
     minDistance = float('inf')
@@ -108,7 +106,6 @@ while unvisited:
     if minNode == (None, None):
         break
     
-    # visited.add(minNode)
     unvisited.remove(minNode)
 
     incomingDir = minNode[1]
@@ -127,8 +124,6 @@ while unvisited:
 
         newDist = None
 
-        
-
         if symbol in dir90s[incomingDir]:
             newDist = incomingDist + 1001
         elif symbol == incomingDir:
@@ -136,42 +131,35 @@ while unvisited:
         else:
             continue
 
-        # if minNode[0] == (15, 1):
-        # print(minNode[0], incomingDir, incomingDist, newDist, symbol)
-
         if newDist <= distances[((newR, newC), symbol)]:
-            if (newR, newC) == end:
-                print(newDist, prevs[(newR, newC)][1])
+            if newDist < distances[((newR, newC), symbol)]:
+                prevs[((newR, newC), symbol)] = [minNode]
+            else:
+                prevs[((newR, newC), symbol)].append(minNode)
             distances[((newR, newC), symbol)] = newDist
-            if newDist < prevs[(newR, newC)][1]:
-                prevs[(newR, newC)] = [[(currR, currC)], newDist]
-
-            elif newDist == prevs[(newR, newC)][1]:
-                prevs[(newR, newC)][0].append((currR, currC))
-            # #Test adding these back in as edge values can technically change depending on path
-            # unvisited.add((newR, newC))
-            # # unvisited.add((currR, currC))
-
-print(distances[(end, "N")])
-print(prevs[end])
-
-currNode = end
 
 seats = set()
-
+seats.add(end)
 seatQueue = deque()
-seatQueue.append(end)
+
+#Loop through 4 nodes of end to see which one is best direction to come from
+minDist = float('inf')
+for dir, symbol in directions.items():
+    if (end, symbol) in distances and distances[(end, symbol)] < minDist:
+        seatQueue = deque()
+        minDist = distances[(end, symbol)]
+    
+    if (end, symbol) in distances and distances[(end, symbol)] == minDist:
+        seatQueue.append((end, symbol))
 
 while seatQueue:
     currSeat = seatQueue.pop()
-    for prev in prevs[currSeat][0]:
-        if prev not in seats:
-            seats.add(prev)
-            seatQueue.append(prev)
+    for prevNode in prevs[currSeat]:
+        if prevNode[0] not in seats:
+            seats.add(prevNode[0])
+        seatQueue.append(prevNode)
 
 for r, c in seats:
     maze[r][c] = "|"
 
-for line in maze:
-    print("".join(line))
-
+print(len(seats))
